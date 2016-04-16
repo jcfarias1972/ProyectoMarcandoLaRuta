@@ -22,6 +22,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     private var distanciaIni:Double = 0.0
     private var recorrido:Double = 0.0
     
+    private var posicion : CLLocation!
+    private var distancia : Double = 0;
+    
     private var medir:Double = 50.0
     
     override func viewDidLoad() {
@@ -81,49 +84,49 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     //2do. método que recibe las lecturas.
     func locationManager(manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         
+        let userLocation:CLLocation = locations[0]
         var punto = CLLocationCoordinate2D()
-        var puntoInicial = CLLocation()
+        //var puntoInicial = CLLocation()
         let localiza = manager.location!
         print ("Latitud: \(localiza.coordinate.latitude) Longitud \(localiza.coordinate.longitude)")
         
-        if (contar == 0){
-            punto.latitude = localiza.coordinate.latitude
-            punto.longitude = localiza.coordinate.longitude
-            let pin = MKPointAnnotation()
-            pin.title = "Inicio: Lat: \(localiza.coordinate.latitude) Long: \(localiza.coordinate.longitude)"
-            pin.subtitle = "Distancia recorrida: 0 metros"
-            pin.coordinate = punto
-            mapa.addAnnotation(pin)
+        if posicion == nil {
+            posicion = userLocation
+            distancia = 0
             
-            let span : MKCoordinateSpan = MKCoordinateSpanMake(0.01, 0.01)
-            let region : MKCoordinateRegion = MKCoordinateRegion(center: punto, span: span)
-            mapa.setRegion(region, animated: true)
+            let latitude:CLLocationDegrees = userLocation.coordinate.latitude
+            let longitude:CLLocationDegrees = userLocation.coordinate.longitude
+            let span:MKCoordinateSpan = MKCoordinateSpanMake(0.01, 0.01)
+            let location:CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
+            let region:MKCoordinateRegion = MKCoordinateRegionMake(location, span)
+            mapa.setRegion(region, animated: false)
             
-            puntoInicial = localiza
-            contar += 1
-            
-            distanciaIni = puntoInicial.distanceFromLocation(puntoInicial)
-            print("Distancia Inicial: \(distanciaIni)")
-            
-        }else{
-            recorrido += medir
-            punto.latitude = localiza.coordinate.latitude
-            punto.longitude = localiza.coordinate.longitude
-            let pin = MKPointAnnotation()
-            pin.title = "Lat: \(localiza.coordinate.latitude) Long: \(localiza.coordinate.longitude)"
-            
-            let distancia = localiza.distanceFromLocation(puntoInicial)
-            print("\(distancia)")
-            pin.subtitle = "Distancia recorrida: \(recorrido) metros"
-            pin.coordinate = punto
-            mapa.addAnnotation(pin)
-            
-            let span : MKCoordinateSpan = MKCoordinateSpanMake(0.01, 0.01)
-            let region : MKCoordinateRegion = MKCoordinateRegion(center: punto, span: span)
-            mapa.setRegion(region, animated: true)
-            contar += 1
+            pintaPin()
+        } else {
+            let distanciaActual = userLocation.distanceFromLocation(posicion)
+            if distanciaActual >= 50 {
+                distancia += distanciaActual
+                posicion = userLocation
+                let span : MKCoordinateSpan = MKCoordinateSpanMake(0.01, 0.01)
+                punto.latitude = posicion.coordinate.latitude
+                punto.longitude = posicion.coordinate.longitude
+                let region : MKCoordinateRegion = MKCoordinateRegion(center: punto, span: span)
+                mapa.setRegion(region, animated: true)
+                pintaPin()
+            }
         }
         
+    }
+    
+    func pintaPin() {
+        let titulo : String = "Lat:\(posicion.coordinate.longitude), Lon:\(posicion.coordinate.latitude)"
+        let subtitulo : String = "Distancia: \(String(format: "%.2f",distancia)) mts."
+        
+        let annotation = MKPointAnnotation()
+        annotation.title = titulo
+        annotation.subtitle = subtitulo
+        annotation.coordinate = posicion.coordinate
+        mapa.addAnnotation(annotation)
     }
     
     //3ro. Método que se lanza si ocurre un error...
